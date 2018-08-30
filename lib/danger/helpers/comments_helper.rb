@@ -94,9 +94,9 @@ module Danger
       def generate_comment(warnings: [], errors: [], messages: [], markdowns: [], previous_violations: {}, danger_id: "danger", template: "github")
         apply_template(
           tables: [
-            table("Message", "speech_balloon", messages, previous_violations, template: template)
+            table("Message", "speech_balloon", messages, previous_violations, template: template),
             table("Warning", "warning", warnings, previous_violations, template: template),
-            table("Error", "boom", errors, previous_violations, template: template),
+            table("Error", "boom", errors, previous_violations, template: template)
           ],
           markdowns: markdowns,
           danger_id: danger_id,

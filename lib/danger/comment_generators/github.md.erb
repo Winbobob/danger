@@ -45,4 +45,11 @@
 </table>
   <%- end -%>
 <%- end -%>
-<p></p>
+
+<%- @markdowns.each do |current| -%>
+<% current %>
+<%# the previous line has to be aligned far to the left, otherwise markdown can break easily %>
+<%- end -%>
+<p align="right" data-meta="generated_by_<%= @danger_id %>">
+  
+</p>

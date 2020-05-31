@@ -22,7 +22,6 @@
       </th>
      </tr>
   </thead>
-
   <tbody>
     <%- max_num_violations = FindMaxNumViolations.new(table[:content]).call -%>
     <%- row_count = [max_num_violations, table[:content].length()].min -%>
@@ -35,7 +34,6 @@
         <td data-sticky="<%= violation.sticky %>"><%= violation.message %></td>
       </tr>
     <%- end -%>
-
     <%- if table[:content].length > max_num_violations -%>
       <tr>
         <%- if table[:name] != "Message" -%>
@@ -51,7 +49,6 @@
         <%- end -%>
       </tr>
     <%- end -%>
-
     <%- row_count += 1 -%>
     <%- table[:resolved].each_with_index do |message, index| -%>
       <tr>

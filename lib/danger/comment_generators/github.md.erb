@@ -4,6 +4,7 @@
   <%- end -%>
   <%= pluralize("Markdown", @markdowns.size) %>
 -->
+<%- row_count = 0 -%>
 <%- @tables.each do |table| -%>
   <%- if table[:content].any? || table[:resolved].any? -%>
 <table>
@@ -24,11 +25,11 @@
   </thead>
   <tbody>
     <%- max_num_violations = FindMaxNumViolations.new(table[:content]).call -%>
-    <%- row_count = [max_num_violations, table[:content].length()].min -%>
     <%- table[:content].take(max_num_violations).each_with_index do |violation, index| -%>
       <tr>
         <%- if table[:name] != "Message" -%>
-          <td><%= index + 1 %></td>
+          <%- row_count += 1 -%>
+          <td><%= row_count %></td>
         <%- end -%>
         <td>:<%= table[:emoji] %>:</td>
         <td data-sticky="<%= violation.sticky %>"><%= violation.message %></td>
@@ -49,11 +50,12 @@
         <%- end -%>
       </tr>
     <%- end -%>
-    <%- row_count += 1 -%>
+
     <%- table[:resolved].each_with_index do |message, index| -%>
       <tr>
         <%- if table[:name] != "Message" -%>
-          <td><%= row_count + index %></td>
+          <%- row_count += 1 -%>
+          <td><%= row_count %></td>
         <%- end -%>
         <td>:white_check_mark:</td>
         <td data-sticky="true"><del><%= message %></del></td>

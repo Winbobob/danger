@@ -9,7 +9,10 @@
 <table>
   <thead>
     <tr>
-      <th width="50"></th>
+      <%- if table[:name] != "Message" -%>
+        <th></th>
+      <%- end -%>
+      <th></th>
       <th width="100%" data-danger-table="true" data-kind="<%= table[:name] %>">
         <%- if table[:count] > 0 -%>
           <%= pluralize(table[:name], table[:count]) %>
@@ -17,26 +20,28 @@
           :white_check_mark: <%= random_compliment %>
         <%- end -%>
       </th>
-      <%- if table[:name] != "Message" -%>
-        <th width="50"></th>
-      <%- end -%>
      </tr>
   </thead>
+
   <tbody>
     <%- max_num_violations = FindMaxNumViolations.new(table[:content]).call -%>
-    <%- table[:content].take(max_num_violations).each do |violation| -%>
-    <tr>
-      <td>:<%= table[:emoji] %>:</td>
-      <td data-sticky="<%= violation.sticky %>"><%= violation.message %></td>
-      <%- if table[:name] != "Message" -%>
-        <td>
-          <input type="checkbox">
-        </td>
-      <%- end -%>
-    </tr>
+    <%- row_count = [max_num_violations, table[:content].length()].min -%>
+    <%- table[:content].take(max_num_violations).each_with_index do |violation, index| -%>
+      <tr>
+        <%- if table[:name] != "Message" -%>
+          <td><%= index + 1 %></td>
+        <%- end -%>
+        <td>:<%= table[:emoji] %>:</td>
+        <td data-sticky="<%= violation.sticky %>"><%= violation.message %></td>
+      </tr>
     <%- end -%>
+
     <%- if table[:content].length > max_num_violations -%>
       <tr>
+        <%- if table[:name] != "Message" -%>
+          <%- row_count += 1 -%>
+          <td><%= row_count %></td>
+        <%- end -%>
         <td>:warning:</td>
         <td>
         Danger found <%= table[:content].length %> violations with this PR. Due to GitHub's max issue comment size, the number shown has been truncated to <%= max_num_violations %>.
@@ -46,8 +51,13 @@
         <%- end -%>
       </tr>
     <%- end -%>
-    <%- table[:resolved].each do |message| -%>
+
+    <%- row_count += 1 -%>
+    <%- table[:resolved].each_with_index do |message, index| -%>
       <tr>
+        <%- if table[:name] != "Message" -%>
+          <td><%= row_count + index %></td>
+        <%- end -%>
         <td>:white_check_mark:</td>
         <td data-sticky="true"><del><%= message %></del></td>
         <%- if table[:name] != "Message" -%>

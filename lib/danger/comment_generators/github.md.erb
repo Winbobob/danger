@@ -4,6 +4,7 @@
   <%- end -%>
   <%= pluralize("Markdown", @markdowns.size) %>
 -->
+<%- require 'digest/sha1' -%>
 <%- @tables.each do |table| -%>
   <%- if table[:content].any? || table[:resolved].any? -%>
 <table>
@@ -27,7 +28,8 @@
     <%- table[:content].take(max_num_violations).each do |violation| -%>
       <tr>
         <%- if table[:name] != "Message" -%>
-          <td><%= violation.message.hash.to_s[-4..-1] %></td>
+          <%- msg = violation.message.gsub(/<\/?[0-9a-z]+>/, "") -%>
+          <td><%= Digest::SHA1.hexdigest(msg)[-4..-1] %></td>
         <%- end -%>
         <td>:<%= table[:emoji] %>:</td>
         <td data-sticky="<%= violation.sticky %>"><%= violation.message %></td>
@@ -50,7 +52,8 @@
     <%- table[:resolved].each do |message| -%>
       <tr>
         <%- if table[:name] != "Message" -%>
-          <td><%= message.hash.to_s[-4..-1] %></td>
+          <%- msg = message.gsub(/<\/?[0-9a-z]+>/, "") -%>
+          <td><%= Digest::SHA1.hexdigest(msg)[-4..-1] %></td>
         <%- end -%>
         <td>:white_check_mark:</td>
         <td data-sticky="true"><del><%= message %></del></td>

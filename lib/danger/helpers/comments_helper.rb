@@ -1,3 +1,4 @@
+require "digest/sha1"
 require "kramdown"
 require "danger/helpers/comments_parsing_helper"
 require "danger/helpers/emoji_mapper"
@@ -54,23 +55,37 @@ module Danger
         Violation.new(html, violation.sticky, violation.file, violation.line)
       end
 
-      def table(name, emoji, violations, all_previous_violations, template: "github")
+      def table(name, emoji, violations, all_previous_violations, approved_violations, rejected_violations, template: "github")
         content = violations
         content = content.map { |v| process_markdown(v) } unless ["bitbucket_server", "vsts"].include?(template)
 
         kind = table_kind_from_title(name)
         previous_violations = all_previous_violations[kind] || []
-        resolved_violations = previous_violations.reject do |pv|
-          content.count { |v| messages_are_equivalent(v, pv) } > 0
+        resolved_violations = []
+        previous_violations.each do |pv|
+          msg = pv.message.gsub(/<\/?[0-9a-z]+>/, "")
+          pv_hash = Digest::SHA1.hexdigest(msg)[-4..-1]
+          # Need to find resolved violations
+          # 1. one previous violation does not exist in the current violation, and not be rejected
+          # 2. approved violations
+          is_resolved = ((content.count { |v| messages_are_equivalent(v, pv) } == 0 and !rejected_violations.include? pv_hash) or
+            (approved_violations.include? pv_hash))
+          if is_resolved
+            resolved_violations << pv
+            content.reject!{ |v| messages_are_equivalent(v, pv) }
+          else
+            content << pv
+            resolved_violations.reject!{ |v| messages_are_equivalent(v, pv) }
+          end
         end
 
         resolved_messages = resolved_violations.map(&:message).uniq
-        count = content.count
+        count = content.uniq.count
 
         {
           name: name,
           emoji: emoji,
-          content: content,
+          content: content.uniq,
           resolved: resolved_messages,
           count: count
         }
@@ -91,12 +106,12 @@ module Danger
         return ERB.new(File.read(md_template), 0, "-").result(binding)
       end
 
-      def generate_comment(warnings: [], errors: [], messages: [], markdowns: [], previous_violations: {}, danger_id: "danger", template: "github")
+      def generate_comment(warnings: [], errors: [], messages: [], markdowns: [], previous_violations: {}, approved_violations: [], rejected_violations: [], danger_id: "danger", template: "github")
         apply_template(
           tables: [
-            table("Message", "speech_balloon", messages, previous_violations, template: template),
-            table("Warning", "warning", warnings, previous_violations, template: template),
-            table("Error", "boom", errors, previous_violations, template: template)
+            table("Message", "speech_balloon", messages, previous_violations, approved_violations, rejected_violations, template: template),
+            table("Warning", "warning", warnings, previous_violations, approved_violations, rejected_violations, template: template),
+            table("Error", "boom", errors, previous_violations, approved_violations, rejected_violations, template: template)
           ],
           markdowns: markdowns,
           danger_id: danger_id,

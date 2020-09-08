@@ -4,14 +4,13 @@
   <%- end -%>
   <%= pluralize("Markdown", @markdowns.size) %>
 -->
-<%- row_count = 0 -%>
 <%- @tables.each do |table| -%>
   <%- if table[:content].any? || table[:resolved].any? -%>
 <table>
   <thead>
     <tr>
       <%- if table[:name] != "Message" -%>
-        <th></th>
+        <th>UUID</th>
       <%- end -%>
       <th></th>
       <th width="100%" data-danger-table="true" data-kind="<%= table[:name] %>">
@@ -25,11 +24,10 @@
   </thead>
   <tbody>
     <%- max_num_violations = FindMaxNumViolations.new(table[:content]).call -%>
-    <%- table[:content].take(max_num_violations).each_with_index do |violation, index| -%>
+    <%- table[:content].take(max_num_violations).each do |violation| -%>
       <tr>
         <%- if table[:name] != "Message" -%>
-          <%- row_count += 1 -%>
-          <td><%= row_count %></td>
+          <td><%= violation.message.hash.to_s[-4..-1] %></td>
         <%- end -%>
         <td>:<%= table[:emoji] %>:</td>
         <td data-sticky="<%= violation.sticky %>"><%= violation.message %></td>
@@ -38,7 +36,6 @@
     <%- if table[:content].length > max_num_violations -%>
       <tr>
         <%- if table[:name] != "Message" -%>
-          <%- row_count += 1 -%>
           <td><%= row_count %></td>
         <%- end -%>
         <td>:warning:</td>
@@ -50,11 +47,10 @@
         <%- end -%>
       </tr>
     <%- end -%>
-    <%- table[:resolved].each_with_index do |message, index| -%>
+    <%- table[:resolved].each do |message| -%>
       <tr>
         <%- if table[:name] != "Message" -%>
-          <%- row_count += 1 -%>
-          <td><%= row_count %></td>
+          <td><%= message.hash.to_s[-4..-1] %></td>
         <%- end -%>
         <td>:white_check_mark:</td>
         <td data-sticky="true"><del><%= message %></del></td>

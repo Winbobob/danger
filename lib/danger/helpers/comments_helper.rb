@@ -55,30 +55,48 @@ module Danger
         Violation.new(html, violation.sticky, violation.file, violation.line)
       end
 
-      def table(name, emoji, violations, all_previous_violations, approved_violations, rejected_violations, template: "github")
+      def table(name, emoji, violations, all_previous_violations, issue_comments, template: "github")
         content = violations
         content = content.map { |v| process_markdown(v) } unless ["bitbucket_server", "vsts"].include?(template)
 
         kind = table_kind_from_title(name)
+        # previous_violations includes all resolved and unresolved violations in one kind
+        # so, previous_violations = content (unresolved violations) + resolved_violations
         previous_violations = all_previous_violations[kind] || []
-        resolved_violations = []
+        # Need to find resolved violations
+        # 1. one previous violation does not exist in the current violation (students may resolve these violations)
+        resolved_violations = previous_violations.reject do |pv|
+          content.count { |v| messages_are_equivalent(v, pv) } > 0
+        end
+        # 2. violations approved or rejected by teaching staff 
+        previous_violations_dict = {} # key: UUID, value: violation object 
         previous_violations.each do |pv|
+          # Remove html tags
           msg = pv.message.gsub(/<\/?[0-9a-z]+>/, "")
-          pv_hash = Digest::SHA1.hexdigest(msg)[-4..-1]
-          # Need to find resolved violations
-          # 1. one previous violation does not exist in the current violation, and not be rejected
-          # 2. approved violations
-          is_resolved = ((content.count { |v| messages_are_equivalent(v, pv) } == 0 and !rejected_violations.include? pv_hash) or
-            (approved_violations.include? pv_hash))
-          if is_resolved
-            resolved_violations << pv
-            content.reject!{ |v| messages_are_equivalent(v, pv) }
-          else
-            content << pv
-            resolved_violations.reject!{ |v| messages_are_equivalent(v, pv) }
-          end
+          # Make the last 4-digit hex hash code as UUID
+          uuid = Digest::SHA1.hexdigest(msg)[-4..-1]
+          previous_violations_dict[uuid] = pv
         end
 
+        issue_comments.each do |issue_comment|
+          next if !issue_comment.body.start_with?("/approve") and !issue_comment.body.start_with?("/reject")
+          # Split one or more whitespaces and commas
+          issue_comment_arr = issue_comment.body.split(/[\s,]+/)
+          puts "issue_comment_arr: " + issue_comment_arr.to_s
+          issue_comment_arr[1..-1].each do |uuid|
+            pv = previous_violations_dict[uuid]
+            next if not pv
+            if issue_comment_arr[0] == "/approve"
+              resolved_violations << pv if !resolved_violations.include? pv
+              content.reject!{ |v| messages_are_equivalent(v, pv) }
+            elsif issue_comment_arr[0] == "/reject"
+              content << pv if !content.include? pv
+              resolved_violations.reject!{ |v| messages_are_equivalent(v, pv) }
+            end
+          end
+        end
+        puts "content: " + content.inspect
+        puts "resolved_violations: " + resolved_violations.inspect
         resolved_messages = resolved_violations.map(&:message).uniq
         count = content.uniq.count
 
@@ -106,12 +124,12 @@ module Danger
         return ERB.new(File.read(md_template), 0, "-").result(binding)
       end
 
-      def generate_comment(warnings: [], errors: [], messages: [], markdowns: [], previous_violations: {}, approved_violations: [], rejected_violations: [], danger_id: "danger", template: "github")
+      def generate_comment(warnings: [], errors: [], messages: [], markdowns: [], previous_violations: {}, issue_comments: [], danger_id: "danger", template: "github")
         apply_template(
           tables: [
-            table("Message", "speech_balloon", messages, previous_violations, approved_violations, rejected_violations, template: template),
-            table("Warning", "warning", warnings, previous_violations, approved_violations, rejected_violations, template: template),
-            table("Error", "boom", errors, previous_violations, approved_violations, rejected_violations, template: template)
+            table("Message", "speech_balloon", messages, previous_violations, issue_comments, template: template),
+            table("Warning", "warning", warnings, previous_violations, issue_comments, template: template),
+            table("Error", "boom", errors, previous_violations, issue_comments, template: template)
           ],
           markdowns: markdowns,
           danger_id: danger_id,

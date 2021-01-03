@@ -183,28 +183,13 @@ module Danger
           delete_old_comments!(danger_id: danger_id)
         end
 
-        ### Start: for the Danger bot `/approve` and `/reject` GitHub pull request comment commands
-        approved_violations, rejected_violations = [], []
-        issue_comments.each do |comment|
-          if comment.body.start_with?("/approve")
-            approved_violations << comment.body[9..-1].strip.split()
-          elsif comment.body.start_with?("/reject")
-            rejected_violations << comment.body[8..-1].strip.split()
-          end
-        end
-
-        approved_violations.flatten!
-        rejected_violations.flatten!
-        ### End: for the Danger bot `/approve` and `/reject` GitHub pull request comment commands
-
         # If there are still violations to show
         if main_violations_sum.any?
           body = generate_comment({
-            template: "github",
-            danger_id: danger_id,
             previous_violations: previous_violations,
-            approved_violations: approved_violations,
-            rejected_violations: rejected_violations
+            issue_comments: issue_comments,
+            danger_id: danger_id,
+            template: "github"
           }.merge(main_violations))
 
           comment_result =

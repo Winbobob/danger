@@ -78,7 +78,10 @@ module Danger
           previous_violations_dict[uuid] = pv
         end
 
+        teaching_staff_github_user_names = ['efg', 'Winbobob']
+
         issue_comments.each do |issue_comment|
+          next if !teaching_staff_github_user_names.include? issue_comment.user.login
           next if !issue_comment.body.start_with?("/cancel") and !issue_comment.body.start_with?("/confirm")
           # Split one or more whitespaces and commas
           issue_comment_arr = issue_comment.body.split(/[\s,]+/)
